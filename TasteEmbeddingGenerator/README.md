@@ -275,11 +275,9 @@ The embedding files are not stored in this repository due to GitHub's 100MB file
 All generated artifacts (movie/user embeddings, FAISS indexes, parquet files) are stored in Google Drive:
 
 #### 🔗 Download Artifacts
-https://drive.google.com/drive/folders/1ci0GZueB6-zbxbYb0hCWOCCom9Odj3En?usp=sharing
-- movie_embeddings.parquet
-https://drive.google.com/file/d/1ld84nIDTzt_1DGxngMBn7n8Yp6mHP4tk/view?usp=sharing
-- user_embeddings.parquet
-https://drive.google.com/file/d/1qOhnyLKPCYxeueeMgxy__GS9SatdTg6I/view?usp=sharing
+[Google Drive](https://drive.google.com/drive/folders/1ci0GZueB6-zbxbYb0hCWOCCom9Odj3En?usp=sharing)
+- [movie_embeddings.parquet](https://drive.google.com/file/d/1ld84nIDTzt_1DGxngMBn7n8Yp6mHP4tk/view?usp=sharing)
+- [user_embeddings.parquet](https://drive.google.com/file/d/1qOhnyLKPCYxeueeMgxy__GS9SatdTg6I/view?usp=sharing)
 
 You can download them manually or run the script below:
 ```bash
