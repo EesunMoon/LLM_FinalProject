@@ -54,7 +54,10 @@ while True:
         # No ID provided → create or reuse session ID
         if session_user_id is None:
             session_user_id = str(uuid.uuid4())
-            print(f"[Session user id created: {session_user_id}]")
+            # print(f"[Session user id created: {session_user_id}]")
+            print(f"[Session user id created: {session_user_id}]\n"
+                  f"(Save this if you want to reuse your taste profile in a future run.)")
+
         user_id = session_user_id
 
     print("\n--- Recommendation ---")
