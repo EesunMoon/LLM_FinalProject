@@ -3,22 +3,43 @@ import { X, Sparkles } from 'lucide-react';
 import { ChatMessage, type Message } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { getChatResponse } from '../../api/openai';
+import { type RecommendedMovie } from '../../types/movie';
 
 interface ChatWindowProps {
   onClose: () => void;
+  movieContext?: RecommendedMovie | null;
 }
 
-export function ChatWindow({ onClose }: ChatWindowProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hi! I'm your movie recommendation assistant. Tell me what kind of movie you're in the mood for, or ask me about any film!",
-      timestamp: new Date(),
-    },
-  ]);
+export function ChatWindow({ onClose, movieContext }: ChatWindowProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [contextLoaded, setContextLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize messages based on whether we have movie context
+  useEffect(() => {
+    if (movieContext && !contextLoaded) {
+      const { movie, explanation, matchScore, factors } = movieContext;
+      setMessages([
+        {
+          id: '1',
+          role: 'assistant',
+          content: `I see you want to know more about **${movie.title}** (${movie.release_date?.split('-')[0]})!\n\nWe recommended this because: ${explanation}\n\nMatch score: ${matchScore}%\nKey factors: ${factors.join(', ')}\n\nWhat would you like to know? I can tell you about similar movies, explain more about why this fits your taste, or discuss the film's themes and style.`,
+          timestamp: new Date(),
+        },
+      ]);
+      setContextLoaded(true);
+    } else if (!movieContext && messages.length === 0) {
+      setMessages([
+        {
+          id: '1',
+          role: 'assistant',
+          content: "Hi! I'm your movie recommendation assistant. Tell me what kind of movie you're in the mood for, or ask me about any film!",
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  }, [movieContext, contextLoaded, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,13 +61,23 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
     setIsTyping(true);
 
     try {
-      // Build conversation history (excluding the system greeting)
+      // Build conversation history
       const history = messages
-        .slice(1) // skip the initial greeting
+        .slice(1)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      // Call OpenAI
-      const response = await getChatResponse(content, history);
+      // Add movie context to the conversation if available
+      let contextPrefix = '';
+      if (movieContext) {
+        const { movie, explanation, factors } = movieContext;
+        contextPrefix = `[Context: User is asking about "${movie.title}" (${movie.release_date?.split('-')[0]}). We recommended it because: ${explanation}. Key factors: ${factors.join(', ')}. Movie overview: ${movie.overview}]\n\n`;
+      }
+
+      // Call OpenAI with context
+      const response = await getChatResponse(
+        contextPrefix + content,
+        history
+      );
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -75,7 +106,9 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-red-500" />
-          <span className="font-semibold text-white">Movie Assistant</span>
+          <span className="font-semibold text-white">
+            {movieContext ? `Chat about ${movieContext.movie.title}` : 'Movie Assistant'}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -90,7 +123,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
-        
+
         {/* Typing indicator */}
         {isTyping && (
           <div className="flex gap-3">
@@ -106,7 +139,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 

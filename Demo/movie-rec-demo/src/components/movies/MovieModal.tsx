@@ -1,13 +1,14 @@
-import { X, Star, Clock, Calendar } from 'lucide-react';
+import { X, Star, Clock, Calendar, MessageCircle } from 'lucide-react';
 import { type RecommendedMovie, GENRE_MAP } from '../../types/movie';
 import { getPosterUrl, getBackdropUrl } from '../../api/tmdb';
 
 interface MovieModalProps {
   movie: RecommendedMovie;
   onClose: () => void;
+  onTalkToChat?: () => void;
 }
 
-export function MovieModal({ movie, onClose }: MovieModalProps) {
+export function MovieModal({ movie, onClose, onTalkToChat }: MovieModalProps) {
   const { movie: m, explanation, matchScore, factors } = movie;
   const year = m.release_date?.split('-')[0] || 'TBA';
   const genres = m.genre_ids?.map(id => GENRE_MAP[id]).filter(Boolean) || [];
@@ -124,24 +125,38 @@ export function MovieModal({ movie, onClose }: MovieModalProps) {
               )}
             </div>
 
-            {/* Quick rating - placeholder for now */}
+            {/* Actions section */}
             <div className="border-t border-gray-800 pt-4">
-              <h3 className="text-lg font-semibold text-white mb-3">
-                Rate this movie
-              </h3>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <Star className="w-6 h-6 text-gray-600 hover:text-yellow-500 hover:fill-yellow-500" />
-                  </button>
-                ))}
+              <div className="flex flex-col gap-4">
+                {/* Quick rating */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">
+                    Rate this movie
+                  </h3>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <Star className="w-6 h-6 text-gray-600 hover:text-yellow-500 hover:fill-yellow-500" />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Your rating helps improve future recommendations
+                  </p>
+                </div>
+
+                {/* Talk to Chat button */}
+                <button
+                  onClick={() => onTalkToChat?.()}
+                  className="flex items-center justify-center gap-2 w-full bg-gray-800 hover:bg-gray-700 text-white py-3 px-4 rounded-lg transition-colors"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Ask questions about this movie</span>
+                </button>
               </div>
-              <p className="text-gray-500 text-sm mt-2">
-                Your rating helps improve future recommendations
-              </p>
             </div>
           </div>
         </div>
