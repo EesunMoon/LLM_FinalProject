@@ -208,8 +208,18 @@ async function resolveMovieIds(
 }
 
 // Main function to generate and store recommendations
+// Main function to generate and store recommendations
 export async function generatePersonalizedRecommendations(): Promise<void> {
   const userData = getUserMovieData();
+
+  console.log('=== Generating Personalized Recommendations ===');
+  console.log('User data:', {
+    ratedMovies: userData.ratedMovies.length,
+    favoriteMovies: userData.favoriteMovies.length,
+    recentMovies: userData.recentMovies.length,
+    vibes: userData.vibes,
+    customVibeText: userData.customVibeText,
+  });
 
   // Combine all user movie IDs (from both TMDB and onboarding)
   const allMovieIds = [
@@ -221,37 +231,33 @@ export async function generatePersonalizedRecommendations(): Promise<void> {
   // Remove duplicates
   const uniqueMovieIds = [...new Set(allMovieIds)];
 
-  console.log('User movie data:', {
-    fromTMDB: {
-      rated: userData.ratedMovies.length,
-      favorites: userData.favoriteMovies.length,
-    },
-    fromOnboarding: {
-      recent: userData.recentMovies.length,
-      vibes: userData.vibes,
-      customText: userData.customVibeText ? 'yes' : 'no',
-    },
-    totalUniqueMovies: uniqueMovieIds.length,
-  });
+  console.log('Unique movie IDs:', uniqueMovieIds);
 
-  if (uniqueMovieIds.length === 0 && userData.vibes.length === 0 && !userData.customVibeText) {
-    console.log('No user movie data found, using defaults');
-    return; // Will fall back to mock data
+  // Check if we have anything to work with
+  const hasMovies = uniqueMovieIds.length > 0;
+  const hasVibes = userData.vibes.length > 0 || userData.customVibeText.trim().length > 0;
+
+  if (!hasMovies && !hasVibes) {
+    console.log('No user data found (no movies, no vibes), skipping generation');
+    return;
   }
 
   // Get movie details for the IDs we have
   let movieDetails: TMDBMovie[] = [];
   if (uniqueMovieIds.length > 0) {
+    console.log('Fetching movie details...');
     movieDetails = await getMovieDetails(uniqueMovieIds);
+    console.log('Fetched movie details:', movieDetails.length);
   }
 
-  // Even if we don't have movie IDs, we might have vibes from onboarding
-  if (movieDetails.length === 0 && (userData.vibes.length === 0 && !userData.customVibeText)) {
+  // If we have no movie details but have vibes, we can still generate recommendations
+  if (movieDetails.length === 0 && !hasVibes) {
     console.log('Could not fetch movie details and no vibes specified');
     return;
   }
 
   // Generate recommendations via OpenAI (returns titles)
+  console.log('Calling OpenAI...');
   const rawRecommendations = await callOpenAIForRecommendations(
     movieDetails,
     userData.vibes,
@@ -261,9 +267,10 @@ export async function generatePersonalizedRecommendations(): Promise<void> {
   console.log('Raw recommendations from OpenAI:', rawRecommendations);
 
   // Convert movie titles to TMDB IDs
+  console.log('Resolving movie IDs...');
   const recommendations = await resolveMovieIds(rawRecommendations);
 
-  console.log('Resolved recommendations with IDs:', recommendations);
+  console.log('Resolved recommendations:', recommendations);
 
   if (recommendations.length === 0) {
     console.error('Failed to resolve any movie IDs');
@@ -272,7 +279,7 @@ export async function generatePersonalizedRecommendations(): Promise<void> {
 
   // Store in localStorage for the home page to use
   localStorage.setItem('personalizedRecommendations', JSON.stringify(recommendations));
-  console.log('Generated personalized recommendations:', recommendations);
+  console.log('=== Recommendations saved successfully ===');
 }
 
 // Get stored recommendations (for HomePage to use)

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MovieCarousel } from '../components/movies/MovieCarousel';
 import { MovieModal } from '../components/movies/MovieModal';
 import { ChatToggle } from '../components/chat/ChatToggle';
 import { ChatWindow } from '../components/chat/ChatWindow';
 import { OnboardingModal } from '../components/onboarding/OnboardingModal';
 import { mockRecommendationSets } from '../data/mockRecommendations';
-import { getStoredRecommendations, generatePersonalizedRecommendations } from '../api/recommendations';
+import { getStoredRecommendations, clearRecommendations } from '../api/recommendations';
 import type { RecommendedMovie, Recommendation } from '../types/movie';
 import type { OnboardingData } from '../types/user';
 import { Spinner } from '../components/ui/Spinner';
@@ -22,33 +23,34 @@ export function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [recommendationSets, setRecommendationSets] = useState<Record<string, RecommendationSet> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Load recommendations
+  // Load recommendations on mount
   useEffect(() => {
-    async function loadRecommendations() {
-      // Check for personalized recommendations first
-      const personalized = getStoredRecommendations();
-      
-      if (personalized && personalized.length > 0) {
-        // Convert to the format our carousels expect
-        const sets: Record<string, RecommendationSet> = {};
-        personalized.forEach((set, index) => {
-          sets[`personalized-${index}`] = {
-            title: set.title,
-            recommendations: set.recommendations,
-          };
-        });
-        setRecommendationSets(sets);
-      } else {
-        // Fall back to mock data
-        setRecommendationSets(mockRecommendationSets);
-      }
-      
-      setIsLoading(false);
-    }
-
     loadRecommendations();
   }, []);
+
+  const loadRecommendations = () => {
+    // Check for personalized recommendations first
+    const personalized = getStoredRecommendations();
+    
+    if (personalized && personalized.length > 0) {
+      // Convert to the format our carousels expect
+      const sets: Record<string, RecommendationSet> = {};
+      personalized.forEach((set, index) => {
+        sets[`personalized-${index}`] = {
+          title: set.title,
+          recommendations: set.recommendations,
+        };
+      });
+      setRecommendationSets(sets);
+    } else {
+      // Fall back to mock data
+      setRecommendationSets(mockRecommendationSets);
+    }
+    
+    setIsLoading(false);
+  };
 
   // Check if user needs onboarding
   useEffect(() => {
@@ -95,28 +97,16 @@ export function HomePage() {
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
     console.log('Onboarding complete:', data);
+    
+    // Save onboarding data first
     localStorage.setItem('onboardingData', JSON.stringify(data));
     setShowOnboarding(false);
     
-    // Generate personalized recommendations
-    setIsLoading(true);
-    try {
-      await generatePersonalizedRecommendations();
-      const personalized = getStoredRecommendations();
-      if (personalized && personalized.length > 0) {
-        const sets: Record<string, RecommendationSet> = {};
-        personalized.forEach((set, index) => {
-          sets[`personalized-${index}`] = {
-            title: set.title,
-            recommendations: set.recommendations,
-          };
-        });
-        setRecommendationSets(sets);
-      }
-    } catch (error) {
-      console.error('Failed to generate recommendations:', error);
-    }
-    setIsLoading(false);
+    // Clear any existing recommendations so we generate fresh ones
+    clearRecommendations();
+    
+    // Navigate to personalizing page to generate recommendations
+    navigate('/personalizing');
   };
 
   const handleOnboardingSkip = () => {

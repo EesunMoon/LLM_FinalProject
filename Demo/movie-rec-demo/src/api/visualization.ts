@@ -9,7 +9,17 @@ export function calculateGenreDistribution(movies: TMDBMovie[]): Record<string, 
   let totalGenres = 0;
 
   movies.forEach((movie) => {
-    movie.genre_ids?.forEach((genreId) => {
+    // Handle both formats: genre_ids (from search) and genres (from getMovie)
+    let genreIds: number[] = [];
+    
+    if (movie.genre_ids && movie.genre_ids.length > 0) {
+      genreIds = movie.genre_ids;
+    } else if ((movie as any).genres && Array.isArray((movie as any).genres)) {
+      // Full movie details have genres as [{id: 28, name: "Action"}, ...]
+      genreIds = (movie as any).genres.map((g: { id: number; name: string }) => g.id);
+    }
+
+    genreIds.forEach((genreId) => {
       const genreName = GENRE_MAP[genreId];
       if (genreName) {
         genreCounts[genreName] = (genreCounts[genreName] || 0) + 1;

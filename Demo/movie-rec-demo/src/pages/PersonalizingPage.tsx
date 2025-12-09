@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Film, Sparkles, Brain, Clapperboard, Heart } from 'lucide-react';
+import { generatePersonalizedRecommendations, getStoredRecommendations } from '../api/recommendations';
 
 const LOADING_MESSAGES = [
   { icon: Brain, text: "Analyzing your movie taste..." },
@@ -9,13 +10,10 @@ const LOADING_MESSAGES = [
   { icon: Sparkles, text: "Adding the finishing touches..." },
 ];
 
-interface PersonalizingPageProps {
-  onComplete?: () => void;
-}
-
 export function PersonalizingPage() {
   const [messageIndex, setMessageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,25 +24,46 @@ export function PersonalizingPage() {
 
     // Update progress bar
     const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 2, 100));
+      setProgress((prev) => {
+        // Slow down progress as it gets higher (never reaches 100 until done)
+        if (prev < 60) return prev + 3;
+        if (prev < 80) return prev + 1;
+        if (prev < 95) return prev + 0.5;
+        return prev;
+      });
     }, 100);
 
-    // Complete after ~5 seconds (or when real processing is done)
-    const completeTimeout = setTimeout(async () => {
-      // Generate recommendations before navigating
+    // Generate recommendations
+    async function generate() {
       try {
-        const { generatePersonalizedRecommendations } = await import('../api/recommendations');
+        console.log('Starting recommendation generation...');
         await generatePersonalizedRecommendations();
-      } catch (error) {
-        console.error('Failed to generate recommendations:', error);
+        
+        // Check if we actually generated recommendations
+        const recs = getStoredRecommendations();
+        console.log('Generated recommendations:', recs);
+        
+        if (recs && recs.length > 0) {
+          setProgress(100);
+          setTimeout(() => navigate('/'), 500);
+        } else {
+          // No recommendations generated, go to home anyway (will use mock data)
+          console.log('No personalized recommendations generated, using defaults');
+          setProgress(100);
+          setTimeout(() => navigate('/'), 500);
+        }
+      } catch (err) {
+        console.error('Failed to generate recommendations:', err);
+        setError('Something went wrong. Using default recommendations.');
+        setTimeout(() => navigate('/'), 2000);
       }
-      navigate('/');
-    }, 5000);
+    }
+
+    generate();
 
     return () => {
       clearInterval(messageInterval);
       clearInterval(progressInterval);
-      clearTimeout(completeTimeout);
     };
   }, [navigate]);
 
@@ -56,7 +75,7 @@ export function PersonalizingPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <Film className="w-10 h-10 text-red-600" />
-          <span className="text-2xl font-bold text-white">ReelReason</span>
+          <span className="text-2xl font-bold text-white">MovieRec</span>
         </div>
 
         {/* Animated icon */}
@@ -69,20 +88,20 @@ export function PersonalizingPage() {
 
         {/* Message */}
         <p className="text-xl text-white mb-2 transition-all duration-300">
-          {LOADING_MESSAGES[messageIndex].text}
+          {error || LOADING_MESSAGES[messageIndex].text}
         </p>
         <p className="text-gray-400 text-sm mb-8">
-          This will only take a moment
+          {error ? 'Redirecting...' : 'This will only take a moment'}
         </p>
 
         {/* Progress bar */}
         <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-200"
+            className={`h-full transition-all duration-200 ${error ? 'bg-yellow-500' : 'bg-gradient-to-r from-red-600 to-red-400'}`}
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-gray-500 text-xs mt-2">{progress}%</p>
+        <p className="text-gray-500 text-xs mt-2">{Math.round(progress)}%</p>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { type TasteProfile } from '../../api/visualization';
 
 interface GenreRadarProps {
@@ -13,12 +12,19 @@ export function GenreRadar({ profile, comparisonProfile }: GenreRadarProps) {
   const center = size / 2;
   const maxRadius = (size / 2) - 40;
 
+  // Check if profile has any genre data
+  const hasUserData = Object.values(profile.genreDistribution).some(v => v > 0);
+  const hasComparisonData = comparisonProfile && Object.values(comparisonProfile.genreDistribution).some(v => v > 0);
+
   // Generate points for the radar polygon
   const getPolygonPoints = (genreDistribution: Record<string, number>) => {
+    const maxValue = Math.max(...Object.values(genreDistribution), 1); // Avoid division by zero
+    
     return RADAR_GENRES.map((genre, i) => {
       const angle = (Math.PI * 2 * i) / RADAR_GENRES.length - Math.PI / 2;
       const value = genreDistribution[genre] || 0;
-      const radius = (value / 50) * maxRadius; // Normalize to 50% max
+      // Normalize to maxValue to fill the radar better
+      const radius = (value / maxValue) * maxRadius * 0.9;
       const x = center + radius * Math.cos(angle);
       const y = center + radius * Math.sin(angle);
       return `${x},${y}`;
@@ -72,24 +78,38 @@ export function GenreRadar({ profile, comparisonProfile }: GenreRadarProps) {
           );
         })}
 
-        {/* Comparison profile polygon */}
-        {comparisonProfile && (
+        {/* Comparison profile polygon (dashed, behind) */}
+        {hasComparisonData && comparisonProfile && (
           <polygon
             points={getPolygonPoints(comparisonProfile.genreDistribution)}
             fill={`${comparisonProfile.color}20`}
             stroke={comparisonProfile.color}
             strokeWidth="2"
-            strokeDasharray="4"
+            strokeDasharray="5,5"
           />
         )}
 
-        {/* User profile polygon */}
-        <polygon
-          points={getPolygonPoints(profile.genreDistribution)}
-          fill={`${profile.color}30`}
-          stroke={profile.color}
-          strokeWidth="2"
-        />
+        {/* User profile polygon (solid, on top) */}
+        {hasUserData && (
+          <polygon
+            points={getPolygonPoints(profile.genreDistribution)}
+            fill={`${profile.color}30`}
+            stroke={profile.color}
+            strokeWidth="2"
+          />
+        )}
+
+        {/* Show message if no user data */}
+        {!hasUserData && (
+          <text
+            x={center}
+            y={center}
+            textAnchor="middle"
+            className="fill-gray-500 text-sm"
+          >
+            No genre data yet
+          </text>
+        )}
 
         {/* Labels */}
         {labelPositions.map(({ genre, x, y }) => (
@@ -106,22 +126,22 @@ export function GenreRadar({ profile, comparisonProfile }: GenreRadarProps) {
         ))}
       </svg>
 
-      {/* Legend */}
-      {comparisonProfile && (
-        <div className="flex justify-center gap-6 mt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: profile.color }} />
-            <span className="text-sm text-gray-400">{profile.name}</span>
-          </div>
+      {/* Legend - always show user, conditionally show comparison */}
+      <div className="flex justify-center gap-6 mt-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: profile.color }} />
+          <span className="text-sm text-gray-400">{profile.name}</span>
+        </div>
+        {comparisonProfile && (
           <div className="flex items-center gap-2">
             <div 
-              className="w-3 h-3 rounded-full border-2 border-dashed" 
-              style={{ borderColor: comparisonProfile.color }} 
+              className="w-3 h-3 rounded-full border-2" 
+              style={{ borderColor: comparisonProfile.color, borderStyle: 'dashed' }} 
             />
             <span className="text-sm text-gray-400">{comparisonProfile.name}</span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
