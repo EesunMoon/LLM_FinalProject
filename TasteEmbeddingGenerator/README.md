@@ -27,6 +27,7 @@ TasteEmbeddingGenerator/
 ├── analysis.py                    # Quantitative evaluation (genre gap, hitrate)
 ├── comparison.py                  # Backend comparison utilities
 ├── test_generator.py              # Sanity test script
+├── requirements.txt
 └── README.md
 ```
 
