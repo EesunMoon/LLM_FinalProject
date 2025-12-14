@@ -66,7 +66,7 @@ Pluggable encoder system supporting:
 | `OpenAIEmbeddingBackend`     | Uses **text-embedding-3-large**        |
 
 As follow:
-```
+```python
 BaseEmbeddingBackend.embed_texts(texts: List[str])
 ```
 
@@ -108,7 +108,7 @@ Process:
 
 #### C) α-Mix Fusion (Hybrid Final Embedding)
 For each user:
-```
+```python
 final = α * rating_vec + (1 - α) * text_vec
 ```
 - Default α = 0.7 (rating-weighted)
@@ -133,6 +133,7 @@ Random recommendation benchmark:
 | -------------------- | ---------- |
 | **OpenAI embedding** | **0.164**  |
 | **BGE-base**         | ~0.03      |
+
 → OpenAI ≈ 5× improvement over baseline.
 
 ---
